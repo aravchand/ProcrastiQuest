@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -8,7 +9,7 @@ class TaskApp extends StatefulWidget {
 
 class _TaskAppState extends State<TaskApp> {
   int _selectedPageIndex = 0;
-  
+
   final List<Widget> _pages = [
     TaskPage(),
     CurrentSchedulePage(),
@@ -27,12 +28,12 @@ class _TaskAppState extends State<TaskApp> {
     DateTime now = DateTime.now();
     DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
     DateTime endOfWeek = startOfWeek.add(Duration(days: 6));
-    String weekRange = "${DateFormat('MMM.').format(startOfWeek)} ${startOfWeek.day}-${endOfWeek.day}";
+    String weekRange = "${DateFormat('MMM.').format(startOfWeek)} ${startOfWeek.day} - ${endOfWeek.day}";
 
     return Scaffold(
       appBar: AppBar(
         // title: Text('Student Task App '),
-        title: Text('Enter Tasks for the week of $weekRange'),
+        title: Text('Student Task App: $weekRange'),
         backgroundColor: Colors.purple[300], // Set AppBar background to purple
         leading: Builder(
           builder: (context) => IconButton(
@@ -227,7 +228,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   String _description = '';
   int _priority = 1;
   int _duration = 30;
-  String _dueDate = '';
+  DateTime? _selectedDueDate;
+  final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm'); // Format for displaying the date
+  final TextEditingController _dueDateController = TextEditingController();
 
   @override
   void initState() {
@@ -237,8 +240,40 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       _description = widget.task!.description;
       _priority = widget.task!.priority;
       _duration = widget.task!.duration;
-      _dueDate = widget.task!.dueDate;
+      _selectedDueDate = DateTime.tryParse(widget.task!.dueDate);
+      if (_selectedDueDate != null) {
+        _dueDateController.text = _dateFormatter.format(_selectedDueDate!);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _dueDateController.dispose();
+    super.dispose();
+  }
+
+  void _showDatePicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return Container(
+          height: 250,
+          child: CupertinoDatePicker(
+            mode: CupertinoDatePickerMode.dateAndTime,
+            initialDateTime: _selectedDueDate ?? DateTime.now(),
+            onDateTimeChanged: (DateTime newDateTime) {
+              setState(() {
+                _selectedDueDate = newDateTime;
+                _dueDateController.text = _dateFormatter.format(newDateTime);
+              });
+            },
+            use24hFormat: true,
+            minuteInterval: 1,
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -300,18 +335,17 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   return null;
                 },
               ),
-              TextFormField(
-                initialValue: _dueDate,
-                decoration: InputDecoration(labelText: 'Due Date (YYYY-MM-DD)'),
-                onSaved: (value) {
-                  _dueDate = value!;
-                },
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please enter a due date';
-                  }
-                  return null;
-                },
+              GestureDetector(
+                onTap: _showDatePicker,
+                child: AbsorbPointer(
+                  child: TextFormField(
+                    controller: _dueDateController, // Using controller to display selected date
+                    decoration: InputDecoration(
+                      labelText: 'Due Date',
+                      hintText: 'Select Due Date',
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -333,7 +367,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 description: _description,
                 priority: _priority,
                 duration: _duration,
-                dueDate: _dueDate,
+                dueDate: _selectedDueDate != null
+                    ? _selectedDueDate!.toIso8601String()
+                    : '',
               );
               Navigator.of(context).pop(updatedTask);
             }
