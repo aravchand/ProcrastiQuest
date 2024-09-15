@@ -1,30 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-void main() {
-  runApp(TaskApp());
-}
-
-class TaskApp extends StatelessWidget {
+class TaskApp extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Student Task App',
-      theme: ThemeData(
-        primarySwatch: Colors.purple, // Set primary color to purple
-      ),
-      home: HomePage(),
-    );
-  }
+  _TaskAppState createState() => _TaskAppState();
 }
 
-class HomePage extends StatefulWidget {
-  @override
-  _HomePageState createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
+class _TaskAppState extends State<TaskApp> {
   int _selectedPageIndex = 0;
-
+  
   final List<Widget> _pages = [
     TaskPage(),
     CurrentSchedulePage(),
@@ -40,9 +24,15 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    DateTime now = DateTime.now();
+    DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    DateTime endOfWeek = startOfWeek.add(Duration(days: 6));
+    String weekRange = "${DateFormat('MMM.').format(startOfWeek)} ${startOfWeek.day}-${endOfWeek.day}";
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Student Task App'),
+        // title: Text('Student Task App '),
+        title: Text('Enter Tasks for the week of $weekRange'),
         backgroundColor: Colors.purple[300], // Set AppBar background to purple
         leading: Builder(
           builder: (context) => IconButton(
