@@ -2,6 +2,28 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+// Task Model
+class Task {
+  String name;
+  String description;
+  int priority;
+  int duration;
+  String dueDate;
+  int xp; // XP value for completing the task
+  bool isCompleted; // Track if the task is completed or not
+
+  Task({
+    required this.name,
+    required this.description,
+    required this.priority,
+    required this.duration,
+    required this.dueDate,
+    required this.xp,
+    this.isCompleted = false,
+  });
+}
+
+// Main Task App
 class TaskApp extends StatefulWidget {
   @override
   _TaskAppState createState() => _TaskAppState();
@@ -9,18 +31,28 @@ class TaskApp extends StatefulWidget {
 
 class _TaskAppState extends State<TaskApp> {
   int _selectedPageIndex = 0;
+  List<Task> tasks = [];
+  int totalXP = 0; // Store total XP
 
-  final List<Widget> _pages = [
-    TaskPage(),
-    CurrentSchedulePage(),
-    PreviousTasksPage(),
-  ];
+  final List<Widget Function(List<Task>, void Function(List<Task>))> _pages = [
+  (tasks, updateTasks) => TaskPage(tasks: tasks, onTasksChanged: updateTasks),
+  (tasks, updateTasks) => CurrentSchedulePage(tasks: tasks, onTasksChanged: updateTasks),
+  (tasks, updateTasks) => PreviousTasksPage(),
+];
+
 
   void _onDrawerItemTapped(int index) {
     setState(() {
       _selectedPageIndex = index;
     });
     Navigator.of(context).pop(); // Close the drawer
+  }
+
+  void _updateTasks(List<Task> newTasks) {
+    setState(() {
+      tasks = newTasks;
+      totalXP = newTasks.where((task) => task.isCompleted).fold(0, (sum, task) => sum + task.xp);
+    });
   }
 
   @override
@@ -32,8 +64,7 @@ class _TaskAppState extends State<TaskApp> {
 
     return Scaffold(
       appBar: AppBar(
-        // title: Text('Student Task App '),
-        title: Text('Student Task App: $weekRange'),
+        title: Text('Enter Tasks: $weekRange'),
         backgroundColor: Colors.purple[300], // Set AppBar background to purple
         leading: Builder(
           builder: (context) => IconButton(
@@ -41,6 +72,17 @@ class _TaskAppState extends State<TaskApp> {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Center(
+              child: Text(
+                "XP: $totalXP",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ),
       drawer: Drawer(
         child: ListView(
@@ -86,19 +128,23 @@ class _TaskAppState extends State<TaskApp> {
           ],
         ),
       ),
-      body: _pages[_selectedPageIndex],
+      body: _pages[_selectedPageIndex](tasks, _updateTasks),
     );
   }
 }
 
+// TaskPage - Create New Schedule
 class TaskPage extends StatefulWidget {
+  final List<Task> tasks;
+  final Function(List<Task>) onTasksChanged;
+
+  TaskPage({required this.tasks, required this.onTasksChanged});
+
   @override
   _TaskPageState createState() => _TaskPageState();
 }
 
 class _TaskPageState extends State<TaskPage> {
-  List<Task> tasks = [];
-
   void _addTask() async {
     final Task? newTask = await showDialog<Task>(
       context: context,
@@ -109,44 +155,20 @@ class _TaskPageState extends State<TaskPage> {
 
     if (newTask != null) {
       setState(() {
-        tasks.add(newTask);
+        widget.onTasksChanged([...widget.tasks, newTask]);
       });
     }
-  }
-
-  void _editTask(int index) async {
-    final Task editedTask = tasks[index];
-    final Task? updatedTask = await showDialog<Task>(
-      context: context,
-      builder: (BuildContext context) {
-        return AddTaskDialog(
-          task: editedTask,
-        );
-      },
-    );
-
-    if (updatedTask != null) {
-      setState(() {
-        tasks[index] = updatedTask;
-      });
-    }
-  }
-
-  void _deleteTask(int index) {
-    setState(() {
-      tasks.removeAt(index);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: tasks.isEmpty
+      body: widget.tasks.isEmpty
           ? Center(child: Text('No tasks added yet.'))
           : ListView.builder(
-              itemCount: tasks.length,
+              itemCount: widget.tasks.length,
               itemBuilder: (context, index) {
-                final task = tasks[index];
+                final task = widget.tasks[index];
                 return Card(
                   margin: EdgeInsets.all(8.0),
                   child: ListTile(
@@ -165,24 +187,7 @@ class _TaskPageState extends State<TaskPage> {
                         Text('Priority: ${task.priority}'),
                         Text('Duration: ${task.duration} mins'),
                         Text('Due: ${task.dueDate}'),
-                      ],
-                    ),
-                    isThreeLine: true,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.edit),
-                          onPressed: () {
-                            _editTask(index);
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () {
-                            _deleteTask(index);
-                          },
-                        ),
+                        Text('XP: ${task.xp}'),
                       ],
                     ),
                   ),
@@ -193,26 +198,87 @@ class _TaskPageState extends State<TaskPage> {
         onPressed: _addTask,
         child: Icon(Icons.add),
       ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ElevatedButton(
+          onPressed: () {
+            widget.onTasksChanged(widget.tasks); // Passing the tasks
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => CurrentSchedulePage(tasks: widget.tasks, onTasksChanged: widget.onTasksChanged)),
+            );
+          },
+          child: Text("Generate Schedule"),
+        ),
+      ),
     );
   }
 }
 
-class Task {
-  String name;
-  String description;
-  int priority;
-  int duration;
-  String dueDate;
+// Current Schedule Page
+class CurrentSchedulePage extends StatelessWidget {
+  final List<Task> tasks;
+  final Function(List<Task>) onTasksChanged;
 
-  Task({
-    required this.name,
-    required this.description,
-    required this.priority,
-    required this.duration,
-    required this.dueDate,
-  });
+  CurrentSchedulePage({required this.tasks, required this.onTasksChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    Map<String, List<Task>> tasksByDay = {
+      'Monday': [],
+      'Tuesday': [],
+      'Wednesday': [],
+      'Thursday': [],
+      'Friday': [],
+      'Saturday': [],
+      'Sunday': [],
+    };
+
+    for (var task in tasks) {
+      DateTime taskDate = DateTime.parse(task.dueDate);
+      String day = DateFormat('EEEE').format(taskDate);
+      if (tasksByDay.containsKey(day)) {
+        tasksByDay[day]?.add(task);
+      }
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Current Schedule'),
+        backgroundColor: Colors.purple[300],
+      ),
+      body: ListView(
+        children: tasksByDay.entries.map((entry) {
+          return Card(
+            margin: EdgeInsets.all(8.0),
+            color: Colors.yellow[100], // Aesthetic for post-it look
+            child: ExpansionTile(
+              title: Text(
+                entry.key,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+              ),
+              children: entry.value.map((task) {
+                return ListTile(
+                  leading: Checkbox(
+                    value: task.isCompleted,
+                    onChanged: (bool? value) {
+                      task.isCompleted = value ?? false;
+                      onTasksChanged(tasks);
+                    },
+                  ),
+                  title: Text(task.name),
+                  subtitle: Text('XP: ${task.xp}'),
+                );
+              }).toList(),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 }
 
+// AddTaskDialog - Add/Edit Task Dialog
 class AddTaskDialog extends StatefulWidget {
   final Task? task;
 
@@ -229,7 +295,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   int _priority = 1;
   int _duration = 30;
   DateTime? _selectedDueDate;
-  final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm'); // Format for displaying the date
+  int _xp = 50;
+  final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm');
   final TextEditingController _dueDateController = TextEditingController();
 
   @override
@@ -241,6 +308,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       _priority = widget.task!.priority;
       _duration = widget.task!.duration;
       _selectedDueDate = DateTime.tryParse(widget.task!.dueDate);
+      _xp = widget.task!.xp;
       if (_selectedDueDate != null) {
         _dueDateController.text = _dateFormatter.format(_selectedDueDate!);
       }
@@ -339,13 +407,28 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 onTap: _showDatePicker,
                 child: AbsorbPointer(
                   child: TextFormField(
-                    controller: _dueDateController, // Using controller to display selected date
+                    controller: _dueDateController,
                     decoration: InputDecoration(
                       labelText: 'Due Date',
                       hintText: 'Select Due Date',
                     ),
                   ),
                 ),
+              ),
+              DropdownButtonFormField<int>(
+                value: _xp,
+                decoration: InputDecoration(labelText: 'XP'),
+                items: [50, 100, 200]
+                    .map((xp) => DropdownMenuItem(
+                          value: xp,
+                          child: Text('$xp XP'),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _xp = value!;
+                  });
+                },
               ),
             ],
           ),
@@ -370,6 +453,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 dueDate: _selectedDueDate != null
                     ? _selectedDueDate!.toIso8601String()
                     : '',
+                xp: _xp,
               );
               Navigator.of(context).pop(updatedTask);
             }
@@ -381,23 +465,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 }
 
-// New pages for the Drawer
-
-class CurrentSchedulePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Current Schedule'),
-        backgroundColor: Colors.white, // Set AppBar background to default color
-      ),
-      body: Center(
-        child: Text('This is the Current Schedule page.'),
-      ),
-    );
-  }
-}
-
+// Previous Tasks Page (Placeholder)
 class PreviousTasksPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
