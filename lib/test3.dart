@@ -1,137 +1,8 @@
+import 'package:congress_app_challenge_24/enter_study_times_page.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-// Task Model
-class Task {
-  String name;
-  String description;
-  int priority;
-  int duration;
-  String dueDate;
-  int xp; // XP value for completing the task
-  bool isCompleted; // Track if the task is completed or not
-
-  Task({
-    required this.name,
-    required this.description,
-    required this.priority,
-    required this.duration,
-    required this.dueDate,
-    required this.xp,
-    this.isCompleted = false,
-  });
-}
-
-// Main Task App
-class TaskApp extends StatefulWidget {
-  @override
-  _TaskAppState createState() => _TaskAppState();
-}
-
-class _TaskAppState extends State<TaskApp> {
-  int _selectedPageIndex = 0;
-  List<Task> tasks = [];
-  int totalXP = 0; // Store total XP
-
-  final List<Widget Function(List<Task>, void Function(List<Task>))> _pages = [
-  (tasks, updateTasks) => TaskPage(tasks: tasks, onTasksChanged: updateTasks),
-  (tasks, updateTasks) => CurrentSchedulePage(tasks: tasks, onTasksChanged: updateTasks),
-  (tasks, updateTasks) => PreviousTasksPage(),
-];
-
-
-  void _onDrawerItemTapped(int index) {
-    setState(() {
-      _selectedPageIndex = index;
-    });
-    Navigator.of(context).pop(); // Close the drawer
-  }
-
-  void _updateTasks(List<Task> newTasks) {
-    setState(() {
-      tasks = newTasks;
-      totalXP = newTasks.where((task) => task.isCompleted).fold(0, (sum, task) => sum + task.xp);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    DateTime now = DateTime.now();
-    DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    DateTime endOfWeek = startOfWeek.add(Duration(days: 6));
-    String weekRange = "${DateFormat('MMM.').format(startOfWeek)} ${startOfWeek.day} - ${endOfWeek.day}";
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Enter Tasks: $weekRange'),
-        backgroundColor: Colors.purple[300], // Set AppBar background to purple
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Center(
-              child: Text(
-                "XP: $totalXP",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.purple[200],
-              ),
-              child: Container(
-                padding: EdgeInsets.zero,
-                child: Text(
-                  'Menu',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.add),
-              title: Text('Create New Schedule'),
-              onTap: () {
-                _onDrawerItemTapped(0); // Go to Create New Schedule page
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.schedule),
-              title: Text('Current Schedule'),
-              onTap: () {
-                _onDrawerItemTapped(1); // Go to Current Schedule page
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.history),
-              title: Text('Previous Tasks'),
-              onTap: () {
-                _onDrawerItemTapped(2); // Go to Previous Tasks page
-              },
-            ),
-          ],
-        ),
-      ),
-      body: _pages[_selectedPageIndex](tasks, _updateTasks),
-    );
-  }
-}
+import 'package:congress_app_challenge_24/task.dart';
 
 // TaskPage - Create New Schedule
 class TaskPage extends StatefulWidget {
@@ -145,6 +16,8 @@ class TaskPage extends StatefulWidget {
 }
 
 class _TaskPageState extends State<TaskPage> {
+  List<int> availableTimes = List<int>.filled(7, 120); // Default study times, can be changed by user
+
   void _addTask() async {
     final Task? newTask = await showDialog<Task>(
       context: context,
@@ -158,6 +31,36 @@ class _TaskPageState extends State<TaskPage> {
         widget.onTasksChanged([...widget.tasks, newTask]);
       });
     }
+  }
+
+  void _goToStudyTimesPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EnterStudyTimesPage(
+          onTimesSubmitted: (times) {
+            setState(() {
+              availableTimes = times; // Update available times
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  void _generateSchedule() {
+    // Organize tasks into days based on available time and overflow
+    Map<String, List<Task>> organizedTasks = organizeTasksIntoDays(widget.tasks, availableTimes);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CurrentSchedulePage(
+          tasksByDay: organizedTasks, // Pass the organized tasks to the schedule page
+          onTasksChanged: widget.onTasksChanged,
+        ),
+      ),
+    );
   }
 
   @override
@@ -200,15 +103,18 @@ class _TaskPageState extends State<TaskPage> {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: ElevatedButton(
-          onPressed: () {
-            widget.onTasksChanged(widget.tasks); // Passing the tasks
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => CurrentSchedulePage(tasks: widget.tasks, onTasksChanged: widget.onTasksChanged)),
-            );
-          },
-          child: Text("Generate Schedule"),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton(
+              onPressed: _goToStudyTimesPage,
+              child: Text("Set Study Times"),
+            ),
+            ElevatedButton(
+              onPressed: _generateSchedule,
+              child: Text("Generate Schedule"),
+            ),
+          ],
         ),
       ),
     );
@@ -217,31 +123,13 @@ class _TaskPageState extends State<TaskPage> {
 
 // Current Schedule Page
 class CurrentSchedulePage extends StatelessWidget {
-  final List<Task> tasks;
+  final Map<String, List<Task>> tasksByDay;
   final Function(List<Task>) onTasksChanged;
 
-  CurrentSchedulePage({required this.tasks, required this.onTasksChanged});
+  CurrentSchedulePage({required this.tasksByDay, required this.onTasksChanged});
 
   @override
   Widget build(BuildContext context) {
-    Map<String, List<Task>> tasksByDay = {
-      'Monday': [],
-      'Tuesday': [],
-      'Wednesday': [],
-      'Thursday': [],
-      'Friday': [],
-      'Saturday': [],
-      'Sunday': [],
-    };
-
-    for (var task in tasks) {
-      DateTime taskDate = DateTime.parse(task.dueDate);
-      String day = DateFormat('EEEE').format(taskDate);
-      if (tasksByDay.containsKey(day)) {
-        tasksByDay[day]?.add(task);
-      }
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Current Schedule'),
@@ -251,7 +139,7 @@ class CurrentSchedulePage extends StatelessWidget {
         children: tasksByDay.entries.map((entry) {
           return Card(
             margin: EdgeInsets.all(8.0),
-            color: Colors.yellow[100], // Aesthetic for post-it look
+            color: entry.key == 'Overflow' ? Colors.red[100] : Colors.yellow[100], // Aesthetic for overflow
             child: ExpansionTile(
               title: Text(
                 entry.key,
@@ -263,11 +151,11 @@ class CurrentSchedulePage extends StatelessWidget {
                     value: task.isCompleted,
                     onChanged: (bool? value) {
                       task.isCompleted = value ?? false;
-                      onTasksChanged(tasks);
+                      onTasksChanged(tasksByDay.values.expand((list) => list).toList());
                     },
                   ),
-                  title: Text(task.name),
-                  subtitle: Text('XP: ${task.xp}'),
+                  title: Text(task.name), // Display subtask number in the task name
+                  subtitle: Text('XP: ${task.xp} | Duration: ${task.duration} mins'),
                 );
               }).toList(),
             ),
