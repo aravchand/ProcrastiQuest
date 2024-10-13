@@ -31,10 +31,12 @@ class TaskApp extends StatefulWidget {
   _TaskAppState createState() => _TaskAppState();
 }
 
+
 class _TaskAppState extends State<TaskApp> {
   int _selectedPageIndex = 0;
   List<Task> tasks = [];
   int totalXP = 0; // Store total XP
+  final int maxXP = 300; //Define maximum XP value
   List<int> availableTimes = List<int>.filled(7, 120); // Default available time per day
   Map<String, int> dailyMinutes = {
     'Monday': 120,
@@ -49,7 +51,7 @@ class _TaskAppState extends State<TaskApp> {
   Map<String, List<Task>> organizedTasks = {}; // Store organized tasks by day
 
   final List<Widget Function()> _pages = []; // Remove the tasks parameter here
-  final List<String> _appBarPrefixText = ['Enter Tasks: ', 'Schedule: ', 'Previous Tasks: '];
+
   @override
   void initState() {
     super.initState();
@@ -106,7 +108,7 @@ class _TaskAppState extends State<TaskApp> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_appBarPrefixText[_selectedPageIndex] + '$weekRange'),
+        title: Text('Enter Tasks: $weekRange'),
         backgroundColor: Colors.purple[300], // Set AppBar background to purple
         leading: Builder(
           builder: (context) => IconButton(
@@ -114,18 +116,40 @@ class _TaskAppState extends State<TaskApp> {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Center(
-              child: Text(
-                "XP: $totalXP",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(60.0), // Height of the space for the progress bar
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.0), // Add horizontal padding
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20.0), // Rounded corners
+                child: LinearProgressIndicator(
+                  value: totalXP / maxXP, // Calculate the progress
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                  minHeight: 12, // Height of the progress bar
+                ),
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Text(
+                "XP: $totalXP / $maxXP",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
       ),
+    ),
+    body: Column(
+      children: [
+        Expanded(
+          child: _pages[_selectedPageIndex](),
+        ),
+      ],
+    ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -185,7 +209,7 @@ class _TaskAppState extends State<TaskApp> {
           ],
         ),
       ),
-      body: _pages[_selectedPageIndex](),
+      //body: _pages[_selectedPageIndex](),
     );
   }
 }
