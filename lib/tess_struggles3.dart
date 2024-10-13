@@ -78,3 +78,22 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
+
+
+
+
+ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SettingsPage(
+                      dailyMinutes: dailyMinutes,
+                      onMinutesChanged: _updateDailyMinutes,
+                    ),
+                  ),
+                );
+              },
+            ),
