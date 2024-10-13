@@ -1,3 +1,4 @@
+import 'package:congress_app_challenge_24/settings_page.dart';
 import 'package:flutter/material.dart'; 
 import 'package:congress_app_challenge_24/test3.dart';
 import 'package:intl/intl.dart';
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(
+      theme: ThemeData( 
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
@@ -35,6 +36,15 @@ class _TaskAppState extends State<TaskApp> {
   List<Task> tasks = [];
   int totalXP = 0; // Store total XP
   List<int> availableTimes = List<int>.filled(7, 120); // Default available time per day
+  Map<String, int> dailyMinutes = {
+    'Monday': 120,
+    'Tuesday': 120,
+    'Wednesday': 120,
+    'Thursday': 120,
+    'Friday': 120,
+    'Saturday': 120,
+    'Sunday': 120,
+  };
 
   Map<String, List<Task>> organizedTasks = {}; // Store organized tasks by day
 
@@ -65,7 +75,13 @@ class _TaskAppState extends State<TaskApp> {
   void _updateTasks(List<Task> newTasks) {
     setState(() {
       tasks = newTasks;
-      totalXP = newTasks.where((task) => task.isCompleted).fold(0, (sum, task) => sum + task.xp);
+      totalXP = newTasks.where((task) => task.isCompleted).fold(0, (sum, task) => sum + Task.XP_of_ONE_SUBTASK);
+    });
+  }
+
+  void _updateDailyMinutes(Map<String, int> newDailyMinutes) {
+    setState(() {
+      dailyMinutes = newDailyMinutes;
     });
   }
 
@@ -137,6 +153,21 @@ class _TaskAppState extends State<TaskApp> {
               title: Text('Previous Tasks'),
               onTap: () {
                 _onDrawerItemTapped(2); // Go to Previous Tasks page
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SettingsPage(
+                      dailyMinutes: dailyMinutes,
+                      onMinutesChanged: _updateDailyMinutes,
+                    ),
+                  ),
+                );
               },
             ),
           ],
