@@ -144,10 +144,10 @@ class _TaskPageState extends State<TaskPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ElevatedButton(
-              onPressed: _goToStudyTimesPage,
-              child: Text("Set Study Times"),
-            ),
+            // ElevatedButton(
+            //   onPressed: _goToStudyTimesPage,
+            //   child: Text("Set Study Times"),
+            // ),
             ElevatedButton(
               onPressed: _generateSchedule,
               child: Text("Generate Schedule"),
@@ -171,7 +171,7 @@ class CurrentSchedulePage extends StatefulWidget {
 }
 
 class _CurrentSchedulePageState extends State<CurrentSchedulePage> {
-  // Update the checkbox state and notify changes
+  // Toggle the task completion state and notify changes
   void _toggleTaskCompletion(Task task) {
     setState(() {
       task.isCompleted = !task.isCompleted; // Toggle the completion state
@@ -188,32 +188,75 @@ class _CurrentSchedulePageState extends State<CurrentSchedulePage> {
         backgroundColor: Colors.purple[300],
       ),
       body: ListView(
+        padding: EdgeInsets.all(10.0),
         children: widget.tasksByDay.entries.map((entry) {
+          bool isOverflow = entry.key == 'Overflow';
+
           return Card(
-            margin: EdgeInsets.all(8.0),
-            color: entry.key == 'Overflow' ? Colors.red[100] : Colors.yellow[100],
-            child: ExpansionTile(
-              title: Text(
-                entry.key,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-              ),
-              children: entry.value.map((task) {
-                return ListTile(
-                  leading: Checkbox(
-                    value: task.isCompleted,
-                    onChanged: (bool? value) {
-                      _toggleTaskCompletion(task);
-                    },
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+            margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 5.0),
+            color: isOverflow ? Colors.red[100] : Colors.lightBlue[50],
+            elevation: 5,
+            shadowColor: Colors.grey[300],
+            child: Padding(
+              padding: EdgeInsets.all(12.0),
+              child: ExpansionTile(
+                title: Text(
+                  entry.key,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20.0,
+                    color: Colors.black87,
                   ),
-                  title: Text(
-                    task.name,
-                    style: TextStyle(
-                      decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                ),
+                children: entry.value.map((task) {
+                  return Container(
+                    margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                    padding: EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: task.isCompleted ? Colors.green[50] : Colors.white,
+                      borderRadius: BorderRadius.circular(10.0),
+                      border: Border.all(
+                        color: task.isCompleted ? Colors.green[300]! : Colors.grey[300]!,
+                        width: 1.5,
+                      ),
                     ),
-                  ),
-                  subtitle: Text('XP: ${Task.XP_of_ONE_SUBTASK} | Duration: ${task.duration} mins'),
-                );
-              }).toList(),
+                    child: ListTile(
+                      leading: Checkbox(
+                        value: task.isCompleted,
+                        onChanged: (bool? value) {
+                          _toggleTaskCompletion(task);
+                        },
+                      ),
+                      title: Text(
+                        task.name,
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                          decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Row(
+                          children: [
+                            Icon(Icons.star, color: Colors.orange, size: 16.0),
+                            SizedBox(width: 4.0),
+                            Text(
+                              'XP: ${Task.XP_of_ONE_SUBTASK} | Duration: ${task.duration} mins',
+                              style: TextStyle(
+                                fontSize: 14.0,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           );
         }).toList(),
