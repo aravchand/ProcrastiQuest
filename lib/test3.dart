@@ -33,6 +33,31 @@ class _TaskPageState extends State<TaskPage> {
     }
   }
 
+  void _editTask(int index) async {
+    final Task? updatedTask = await showDialog<Task>(
+      context: context,
+      builder: (BuildContext context) {
+        return AddTaskDialog(task: widget.tasks[index]);
+      },
+    );
+
+    if (updatedTask != null) {
+      setState(() {
+        List<Task> updatedTasks = List.from(widget.tasks);
+        updatedTasks[index] = updatedTask;
+        widget.onTasksChanged(updatedTasks);
+      });
+    }
+  }
+
+  void _deleteTask(int index) {
+    setState(() {
+      List<Task> updatedTasks = List.from(widget.tasks);
+      updatedTasks.removeAt(index);
+      widget.onTasksChanged(updatedTasks);
+    });
+  }
+
   void _goToStudyTimesPage() {
     Navigator.push(
       context,
@@ -90,7 +115,20 @@ class _TaskPageState extends State<TaskPage> {
                         Text('Priority: ${task.priority}'),
                         Text('Duration: ${task.duration} mins'),
                         Text('Due: ${task.dueDate}'),
-                        Text('XP: ${task.xp}'),
+                        Text('XP: ${task.duration * 50 / 30}'),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit),
+                          onPressed: () => _editTask(index),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () => _deleteTask(index),
+                        ),
                       ],
                     ),
                   ),
@@ -122,11 +160,25 @@ class _TaskPageState extends State<TaskPage> {
 }
 
 // Current Schedule Page
-class CurrentSchedulePage extends StatelessWidget {
+class CurrentSchedulePage extends StatefulWidget {
   final Map<String, List<Task>> tasksByDay;
   final Function(List<Task>) onTasksChanged;
 
   CurrentSchedulePage({required this.tasksByDay, required this.onTasksChanged});
+
+  @override
+  _CurrentSchedulePageState createState() => _CurrentSchedulePageState();
+}
+
+class _CurrentSchedulePageState extends State<CurrentSchedulePage> {
+  // Update the checkbox state and notify changes
+  void _toggleTaskCompletion(Task task) {
+    setState(() {
+      task.isCompleted = !task.isCompleted; // Toggle the completion state
+    });
+    // Notify the parent of the updated task list
+    widget.onTasksChanged(widget.tasksByDay.values.expand((list) => list).toList());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,10 +188,10 @@ class CurrentSchedulePage extends StatelessWidget {
         backgroundColor: Colors.purple[300],
       ),
       body: ListView(
-        children: tasksByDay.entries.map((entry) {
+        children: widget.tasksByDay.entries.map((entry) {
           return Card(
             margin: EdgeInsets.all(8.0),
-            color: entry.key == 'Overflow' ? Colors.red[100] : Colors.yellow[100], // Aesthetic for overflow
+            color: entry.key == 'Overflow' ? Colors.red[100] : Colors.yellow[100],
             child: ExpansionTile(
               title: Text(
                 entry.key,
@@ -150,12 +202,16 @@ class CurrentSchedulePage extends StatelessWidget {
                   leading: Checkbox(
                     value: task.isCompleted,
                     onChanged: (bool? value) {
-                      task.isCompleted = value ?? false;
-                      onTasksChanged(tasksByDay.values.expand((list) => list).toList());
+                      _toggleTaskCompletion(task);
                     },
                   ),
-                  title: Text(task.name), // Display subtask number in the task name
-                  subtitle: Text('XP: ${task.xp} | Duration: ${task.duration} mins'),
+                  title: Text(
+                    task.name,
+                    style: TextStyle(
+                      decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  subtitle: Text('XP: ${Task.XP_of_ONE_SUBTASK} | Duration: ${task.duration} mins'),
                 );
               }).toList(),
             ),
@@ -183,7 +239,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   int _priority = 1;
   int _duration = 30;
   DateTime? _selectedDueDate;
-  int _xp = 50;
+  // int _xp = 50;
   final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm');
   final TextEditingController _dueDateController = TextEditingController();
 
@@ -196,7 +252,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       _priority = widget.task!.priority;
       _duration = widget.task!.duration;
       _selectedDueDate = DateTime.tryParse(widget.task!.dueDate);
-      _xp = widget.task!.xp;
+      // _xp = widget.task!.xp;
       if (_selectedDueDate != null) {
         _dueDateController.text = _dateFormatter.format(_selectedDueDate!);
       }
@@ -303,21 +359,21 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   ),
                 ),
               ),
-              DropdownButtonFormField<int>(
-                value: _xp,
-                decoration: InputDecoration(labelText: 'XP'),
-                items: [50, 100, 200]
-                    .map((xp) => DropdownMenuItem(
-                          value: xp,
-                          child: Text('$xp XP'),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _xp = value!;
-                  });
-                },
-              ),
+              // DropdownButtonFormField<int>(
+              //   value: _xp,
+              //   decoration: InputDecoration(labelText: 'XP'),
+              //   items: [50, 100, 200]
+              //       .map((xp) => DropdownMenuItem(
+              //             value: xp,
+              //             child: Text('$xp XP'),
+              //           ))
+              //       .toList(),
+              //   onChanged: (value) {
+              //     setState(() {
+              //       _xp = value!;
+              //     });
+              //   },
+              // ),
             ],
           ),
         ),
@@ -341,7 +397,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 dueDate: _selectedDueDate != null
                     ? _selectedDueDate!.toIso8601String()
                     : '',
-                xp: _xp,
+                // xp: _xp,
               );
               Navigator.of(context).pop(updatedTask);
             }
