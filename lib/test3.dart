@@ -8,12 +8,18 @@ import 'package:congress_app_challenge_24/task.dart';
 class TaskPage extends StatefulWidget {
   final List<Task> tasks;
   final Function(List<Task>) onTasksChanged;
+  final VoidCallback onGenerateSchedule;
 
-  TaskPage({required this.tasks, required this.onTasksChanged});
+  TaskPage({
+    required this.tasks,
+    required this.onTasksChanged,
+    required this.onGenerateSchedule,
+  });
 
   @override
   _TaskPageState createState() => _TaskPageState();
 }
+
 
 class _TaskPageState extends State<TaskPage> {
   List<int> availableTimes = List<int>.filled(7, 120); // Default study times, can be changed by user
@@ -141,18 +147,9 @@ class _TaskPageState extends State<TaskPage> {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // ElevatedButton(
-            //   onPressed: _goToStudyTimesPage,
-            //   child: Text("Set Study Times"),
-            // ),
-            ElevatedButton(
-              onPressed: _generateSchedule,
-              child: Text("Generate Schedule"),
-            ),
-          ],
+        child: ElevatedButton(
+          onPressed: widget.onGenerateSchedule, // Calls _generateSchedule in TaskApp
+          child: Text("Generate Schedule"),
         ),
       ),
     );
