@@ -55,7 +55,11 @@ class _TaskAppState extends State<TaskApp> {
     super.initState();
     // Initialize the pages, but we will handle the task assignment dynamically
     _pages.addAll([
-      () => TaskPage(tasks: tasks, onTasksChanged: _updateTasks),
+      () => TaskPage(
+            tasks: tasks,
+            onTasksChanged: _updateTasks,
+            onGenerateSchedule: () => _generateSchedule(tasks), // Pass the callback here
+          ),
       () => CurrentSchedulePage(tasksByDay: organizedTasks, onTasksChanged: _updateTasks),
       () => PreviousTasksPage(),
     ]);
@@ -70,6 +74,14 @@ class _TaskAppState extends State<TaskApp> {
       _selectedPageIndex = index;
     });
     Navigator.of(context).pop(); // Close the drawer
+  }
+
+  void _generateSchedule(List<Task> tasks) {
+    setState(() {
+      // Organize tasks into days based on available time and overflow
+      organizedTasks = organizeTasksIntoDays(tasks, availableTimes);
+      _selectedPageIndex = 1; // Switch to Current Schedule page index
+    });
   }
 
   void _updateTasks(List<Task> newTasks) {
