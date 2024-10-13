@@ -1,0 +1,108 @@
+class _TaskPageState extends State<TaskPage> {
+  void _addTask() async {
+    final Task? newTask = await showDialog<Task>(
+      context: context,
+      builder: (BuildContext context) {
+        return AddTaskDialog();
+      },
+    );
+
+    if (newTask != null) {
+      setState(() {
+        widget.onTasksChanged([...widget.tasks, newTask]);
+      });
+    }
+  }
+
+  void _editTask(int index) async {
+    final Task? updatedTask = await showDialog<Task>(
+      context: context,
+      builder: (BuildContext context) {
+        return AddTaskDialog(task: widget.tasks[index]);
+      },
+    );
+
+    if (updatedTask != null) {
+      setState(() {
+        List<Task> updatedTasks = List.from(widget.tasks);
+        updatedTasks[index] = updatedTask;
+        widget.onTasksChanged(updatedTasks);
+      });
+    }
+  }
+
+  void _deleteTask(int index) {
+    setState(() {
+      List<Task> updatedTasks = List.from(widget.tasks);
+      updatedTasks.removeAt(index);
+      widget.onTasksChanged(updatedTasks);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: widget.tasks.isEmpty
+          ? const Center(child: Text('No tasks added yet.'))
+          : ListView.builder(
+              itemCount: widget.tasks.length,
+              itemBuilder: (context, index) {
+                final task = widget.tasks[index];
+                return Card(
+                  margin: const EdgeInsets.all(8.0),
+                  child: ListTile(
+                    title: Text(
+                      task.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(task.description),
+                        const SizedBox(height: 8.0),
+                        Text('Priority: ${task.priority}'),
+                        Text('Duration: ${task.duration} mins'),
+                        Text('Due: ${task.dueDate}'),
+                        Text('XP: ${task.xp}'),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit),
+                          onPressed: () => _editTask(index),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () => _deleteTask(index),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addTask,
+        child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ElevatedButton(
+          onPressed: () {
+            widget.onTasksChanged(widget.tasks); // Passing the tasks
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => CurrentSchedulePage(tasks: widget.tasks, onTasksChanged: widget.onTasksChanged)),
+            );
+          },
+          child: const Text("Generate Schedule"),
+        ),
+      ),
+    );
+  }
+}
