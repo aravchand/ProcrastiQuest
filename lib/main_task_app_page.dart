@@ -49,7 +49,7 @@ class _TaskAppState extends State<TaskApp> {
   Map<String, List<Task>> organizedTasks = {}; // Store organized tasks by day
 
   final List<Widget Function()> _pages = []; // Remove the tasks parameter here
-
+  final List<String> _appBarPrefixText = ['Enter Tasks: ', 'Schedule: ', 'Previous Tasks: '];
   @override
   void initState() {
     super.initState();
@@ -106,7 +106,7 @@ class _TaskAppState extends State<TaskApp> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Enter Tasks: $weekRange'),
+        title: Text(_appBarPrefixText[_selectedPageIndex] + '$weekRange'),
         backgroundColor: Colors.purple[300], // Set AppBar background to purple
         leading: Builder(
           builder: (context) => IconButton(
